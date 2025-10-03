@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const Auth_service_1 = __importDefault(require("./Auth.service"));
+const validation_middleware_1 = require("../../middlewares/validation.middleware");
+const auth_validation_1 = require("./auth.validation");
+const authentication_middleware_1 = require("../../middlewares/authentication.middleware");
+const cloud_multer_1 = require("../../utils/multer/cloud.multer");
+const auth_authorization_1 = require("./auth.authorization");
+const token_1 = require("../../utils/security/token");
+const router = (0, express_1.Router)();
+router.post("/signup", (0, validation_middleware_1.validation)(auth_validation_1.signUpSchema), Auth_service_1.default.signup);
+router.post("/login", (0, validation_middleware_1.validation)(auth_validation_1.loginSchema), Auth_service_1.default.login);
+router.patch("/profile-image", (0, authentication_middleware_1.authentication)(auth_authorization_1.endPoint.profileImage, token_1.TokenEnum.ACCESS), (0, cloud_multer_1.cloudFileUpload)({ storageApproach: cloud_multer_1.storageEnum.MEMORY, validation: cloud_multer_1.fileValidation.image }).single("attachment"), Auth_service_1.default.profileImage);
+router.patch("/cover-images", (0, authentication_middleware_1.authentication)(auth_authorization_1.endPoint.profileImage, token_1.TokenEnum.ACCESS), (0, cloud_multer_1.cloudFileUpload)({ storageApproach: cloud_multer_1.storageEnum.DISK, validation: cloud_multer_1.fileValidation.image, maxSize: 2 }).array("attachments", 5), Auth_service_1.default.coverImages);
+router.patch("/confirm-email", (0, validation_middleware_1.validation)(auth_validation_1.confirmEmailSchema), Auth_service_1.default.confirmEmail);
+exports.default = router;
