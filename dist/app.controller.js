@@ -17,6 +17,8 @@ const connection_1 = __importDefault(require("./DB/connection"));
 const s3_config_1 = require("./utils/multer/s3.config");
 const node_util_1 = require("node:util");
 const node_stream_1 = require("node:stream");
+const user_model_1 = require("./DB/models/user.model");
+const user_repository_1 = require("./DB/repositories/user.repository");
 (0, dotenv_1.config)({ path: node_path_1.default.resolve("./config/.env.dev") });
 const createS3WriteStreamPipe = (0, node_util_1.promisify)(node_stream_1.pipeline);
 const limiter = (0, express_rate_limit_1.default)({
@@ -62,6 +64,20 @@ const bootstrap = async () => {
         return await createS3WriteStreamPipe(s3Response.Body, res);
     });
     app.use(error_response_1.globalErrorHandler);
+    async function user() {
+        try {
+            const userModel = new user_repository_1.UserRepository(user_model_1.UserModel);
+            const user = await userModel.findOneAndUpdate({
+                filter: { _id: "68cdcae65cf27e06f43b4cb7" },
+                update: { freezedAt: new Date() },
+            });
+            console.log({ results: user });
+        }
+        catch (error) {
+            console.log(error);
+        }
+    }
+    user();
     app.listen(port, () => {
         console.log(`Server is running on PORT : ${port}`);
     });

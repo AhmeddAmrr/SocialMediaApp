@@ -6,21 +6,21 @@ import { DatabaseRepository } from "./database.repository";
 
 
 
-export class UserRepository extends DatabaseRepository<IUser> { 
-    constructor(protected override readonly model: Model<IUser>){
+export class UserRepository extends DatabaseRepository<IUser> {
+    constructor(protected override readonly model: Model<IUser>) {
         super(model);
-    } 
+    }
 
-        async createUser({
-        data ,
+    async createUser({
+        data,
         options
-        }: {
-            data:Partial<IUser>[] ,
-            options?: CreateOptions 
-        }): Promise<HydratedDocument<IUser> > {
-        const [user] = await this.create({data , options}) || [];
-        if(!user)
-            throw new BadRequestException ("Failed to signup ");
+    }: {
+        data: Partial<IUser>[],
+        options?: CreateOptions
+    }): Promise<HydratedDocument<IUser>> {
+        const [user] = await this.create({ data, options }) || [];
+        if (!user)
+            throw new BadRequestException("Failed to signup ");
         return user;
     }
 }

@@ -2,9 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserModel = exports.userSchema = exports.RoleEnum = exports.GenderEnum = void 0;
 const mongoose_1 = require("mongoose");
-const error_response_1 = require("../../utils/response/error.response");
-const hash_1 = require("../../utils/security/hash");
-const email_event_1 = require("../../utils/events/email.event");
+const token_repository_1 = require("../repositories/token.repository");
+const token_model_1 = require("./token.model");
 var GenderEnum;
 (function (GenderEnum) {
     GenderEnum["MALE"] = "MALE";
@@ -40,31 +39,34 @@ exports.userSchema = new mongoose_1.Schema({
     password: { type: String, required: true, },
     resetPasswordOTP: String,
     changeCredentialsTime: Date,
+    freezedAt: Date,
     phone: String,
     address: String,
     gender: { type: String, enum: Object.values(GenderEnum), default: GenderEnum.MALE },
     role: { type: String, enum: Object.values(RoleEnum), default: RoleEnum.USER },
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
-exports.userSchema.virtual("username").set(function (value) {
+exports.userSchema
+    .virtual("username")
+    .set(function (value) {
     const [firstName, lastName] = value.split(" ") || [];
     this.set({ firstName, lastName, slug: value.replaceAll(/\s+/g, "-") });
 })
     .get(function () {
     return `${this.firstName} ${this.lastName}`;
 });
-exports.userSchema.pre("validate", async function (next) {
-    if (!this.slug?.includes("-"))
-        next(new error_response_1.BadRequestException("Slug is Required and must hold '-' "));
+exports.userSchema.pre(["findOneAndUpdate", "updateOne"], async function (next) {
+    const query = this.getQuery();
+    const update = this.getUpdate();
+    if (update.freezedAt) {
+        this.setUpdate({ ...update, changeCredentialsTime: new Date() });
+    }
 });
-exports.userSchema.pre("save", async function (next) {
-    this.wasNew = this.isNew;
-    if (this.isModified("password"))
-        this.password = await (0, hash_1.generateHash)(this.password);
-    next();
-});
-exports.userSchema.post("save", function (doc, next) {
-    const that = this;
-    if (that.wasNew)
-        email_event_1.emailEvent.emit("confirmEmail", { to: this.email, otp: 123456 });
+exports.userSchema.post(["findOneAndUpdate", "updateOne"], async function (next) {
+    const query = this.getQuery();
+    const update = this.getUpdate();
+    if (update["$set"].changeCredentialsTime) {
+        const tokenModel = new token_repository_1.TokenRepository(token_model_1.TokenModel);
+        await tokenModel.deleteMany({ filter: { userId: query._id } });
+    }
 });
 exports.UserModel = mongoose_1.models.User || (0, mongoose_1.model)("User", exports.userSchema);
