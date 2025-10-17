@@ -35,13 +35,13 @@ class AuthenticationService {
             data: [{
                 username,
                 email,
-                password: await generateHash(password),
-                confirmEmailOTP: await generateHash(otp.toString()),
+                password,
+                confirmEmailOTP:`${otp}`
             }],
             options: { validateBeforeSave: true },
         });
 
-        emailEvent.emit("confirmEmail", { to: email, username, otp })
+        
 
 
         return res.status(201).json({ message: "User created successfully ", user });

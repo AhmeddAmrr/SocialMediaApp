@@ -235,7 +235,11 @@ export const deleteFiles = async ({
         Quiet
     } 
    })
+   console.log("Deleting from S3:", Objects.map(o => o.Key));
 
+const response = await s3Config().send(command);
+console.log("S3 delete response:", response);
+return response;
    return await s3Config().send(command);
 
 }

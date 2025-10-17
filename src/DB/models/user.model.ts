@@ -1,6 +1,6 @@
-import { HydratedDocument, model, models, Schema, Types, UpdateQuery } from "mongoose";
-import { TokenRepository } from "../repositories/token.repository";
-import { TokenModel } from "./token.model";
+import { HydratedDocument, model, models, Schema, Types } from "mongoose";
+import { generateHash } from "../../utils/security/hash";
+import { emailEvent } from "../../utils/events/email.event";
 
 
 export enum GenderEnum {
@@ -32,9 +32,15 @@ export interface IUser {
     gender: GenderEnum;
     role: RoleEnum;
 
-    freezedAt?: Date,
+    freezedBy?: Types.ObjectId;
+    freezedAt?:Date;
+
+    restoredBy?:Types.ObjectId;
+    restoredAt?:Date;
+
     createdAt: Date;
     updatedAt?: Date;
+    friends?: Types.ObjectId[];
 }
 
 export const userSchema = new Schema<IUser>(
@@ -63,11 +69,26 @@ export const userSchema = new Schema<IUser>(
         password: { type: String, required: true, },
         resetPasswordOTP: String,
         changeCredentialsTime: Date,
-        freezedAt: Date,
         phone: String,
         address: String,
         gender: { type: String, enum: Object.values(GenderEnum), default: GenderEnum.MALE },
         role: { type: String, enum: Object.values(RoleEnum), default: RoleEnum.USER },
+        freezedBy:{
+                    type: Schema.Types.ObjectId,
+                    ref:"User",
+                },
+        freezedAt:Date,
+        
+        restoredBy:{
+                    type: Schema.Types.ObjectId,
+                    ref:"User",
+                },
+        restoredAt:Date,
+        friends: [{
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        }],
+
 
     },
     { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
@@ -83,29 +104,36 @@ userSchema
         return `${this.firstName} ${this.lastName}`;
     });
 
-userSchema.pre(["findOneAndUpdate", "updateOne"], async function (next) {
-    const query = this.getQuery();
-    const update = this.getUpdate() as UpdateQuery<HUserDocument>;
-    if (update.freezedAt) {
-        this.setUpdate({ ...update, changeCredentialsTime: new Date() })
+userSchema.pre("save", async function (this: HUserDocument & { wasNew: boolean; confirmEmailPlainOTP?: string }, next) {
+    this.wasNew = this.isNew;
+    if (this.isModified("password")) {
+        this.password = await generateHash(this.password)
     }
 
-})
-
-userSchema.post(["findOneAndUpdate", "updateOne"], async function (next) {
-    const query = this.getQuery();
-    const update = this.getUpdate() as UpdateQuery<HUserDocument>;
-
-
-    if (update["$set"].changeCredentialsTime) {
-        const tokenModel = new TokenRepository(TokenModel);
-        await tokenModel.deleteMany({ filter: { userId: query._id } })
+    if (this.isModified("confirmEmailOTP")) {
+        this.confirmEmailPlainOTP = this.confirmEmailOTP as string;
+        this.confirmEmailOTP = await generateHash(this.confirmEmailOTP as string)
     }
+    next();
+});
 
-
+userSchema.post("save", async function (doc, next) {
+    const that = this as HUserDocument & { wasNew: boolean; confirmEmailPlainOTP?: string }
+    if (that.wasNew && that.confirmEmailPlainOTP) {
+        emailEvent.emit("confirmEmail", { to: this.email, username: this.username, otp: that.confirmEmailPlainOTP })
+    }
+    next();
 })
-
-
+userSchema.pre(["find", "findOne"] ,function (next) {
+    const query = this.getQuery();
+    
+    if(query.paranoid === false){
+        this.setQuery({...query});
+    }else{
+        this.setQuery({...query , freezedAt: {$exists : false}})
+    }
+    next();
+})
 
 
 export const UserModel = models.User || model<IUser>("User", userSchema);

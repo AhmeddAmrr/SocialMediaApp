@@ -7,13 +7,13 @@ import helmet from "helmet";
 import rateLimit, { type RateLimitRequestHandler } from "express-rate-limit";
 import authRouter from "./Modules/Auth/auth.controller";
 import userRouter from "./Modules/User/user.controller";
+import postRouter from "./Modules/post/post.controller";
 import { BadRequestException, globalErrorHandler } from "./utils/response/error.response";
 import connectDB from "./DB/connection";
 import { createGetPresignedUrl, getFile } from "./utils/multer/s3.config";
 import { promisify } from "node:util";
 import { pipeline } from "node:stream";
-import { UserModel } from "./DB/models/user.model";
-import { UserRepository } from "./DB/repositories/user.repository";
+
 config({ path: path.resolve("./config/.env.dev") });
 
 const createS3WriteStreamPipe = promisify(pipeline)
@@ -41,6 +41,8 @@ export const bootstrap = async (): Promise<void> => {
 
     app.use("/api/auth", authRouter);
     app.use("/api/user", userRouter);
+    app.use("/api/post", postRouter);
+
 
     // app.get("/test" , async (req:Request , res:Response) =>{
 
@@ -95,25 +97,7 @@ export const bootstrap = async (): Promise<void> => {
     })
 
     app.use(globalErrorHandler)
-    async function user() {
-        try {
-
-            const userModel = new UserRepository(UserModel);
-            const user = await userModel.findOneAndUpdate({
-                filter: { _id: "68cdcae65cf27e06f43b4cb7" },
-                update: { freezedAt: new Date() },
-            })
-            console.log({ results: user });
-
-
-
-
-        } catch (error) {
-            console.log(error);
-
-        }
-    }
-    user();
+    
 
     app.listen(port, (): void => {
         console.log(`Server is running on PORT : ${port}`);

@@ -14,7 +14,7 @@ export const sendEmail = async(data: Mail.Options):Promise<void> =>{
         }
     });
 
-    const info = await transporter.sendMail({
+     await transporter.sendMail({
         ...data,
         from: `"SocialMediaApp" <${process.env.EMAIL}>`,
     })

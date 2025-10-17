@@ -10,7 +10,7 @@ const sendEmail = async (data) => {
             pass: process.env.PASS
         }
     });
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
         ...data,
         from: `"SocialMediaApp" <${process.env.EMAIL}>`,
     });

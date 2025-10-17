@@ -111,6 +111,10 @@ const deleteFiles = async ({ Bucket = process.env.AWS_BUCKET_NAME, urls, Quiet =
             Quiet
         }
     });
+    console.log("Deleting from S3:", Objects.map(o => o.Key));
+    const response = await (0, exports.s3Config)().send(command);
+    console.log("S3 delete response:", response);
+    return response;
     return await (0, exports.s3Config)().send(command);
 };
 exports.deleteFiles = deleteFiles;
