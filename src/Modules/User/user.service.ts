@@ -19,7 +19,7 @@ class UserService {
     constructor() { }
 
     getProfile = async (req: Request, res: Response) => {
-
+        await req.user?.populate("friends");
         return res.status(200).json({ message: "User Profile", user: req.user, decoded: req.decoded });
 
     };

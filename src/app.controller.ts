@@ -13,6 +13,11 @@ import connectDB from "./DB/connection";
 import { createGetPresignedUrl, getFile } from "./utils/multer/s3.config";
 import { promisify } from "node:util";
 import { pipeline } from "node:stream";
+import { Server, Socket } from "socket.io";
+import { decodeToken, TokenEnum } from "./utils/security/token";
+import { HUserDocument } from "./DB/models/user.model";
+import { JwtPayload } from "jsonwebtoken";
+import { initialize } from "./Modules/gateway/gateway";
 
 config({ path: path.resolve("./config/.env.dev") });
 
@@ -97,9 +102,10 @@ export const bootstrap = async (): Promise<void> => {
     })
 
     app.use(globalErrorHandler)
-    
 
-    app.listen(port, (): void => {
+   const httpServer = app.listen(port, (): void => {
         console.log(`Server is running on PORT : ${port}`);
     });
+    initialize(httpServer);
+
 }

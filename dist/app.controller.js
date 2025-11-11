@@ -18,6 +18,7 @@ const connection_1 = __importDefault(require("./DB/connection"));
 const s3_config_1 = require("./utils/multer/s3.config");
 const node_util_1 = require("node:util");
 const node_stream_1 = require("node:stream");
+const gateway_1 = require("./Modules/gateway/gateway");
 (0, dotenv_1.config)({ path: node_path_1.default.resolve("./config/.env.dev") });
 const createS3WriteStreamPipe = (0, node_util_1.promisify)(node_stream_1.pipeline);
 const limiter = (0, express_rate_limit_1.default)({
@@ -64,8 +65,9 @@ const bootstrap = async () => {
         return await createS3WriteStreamPipe(s3Response.Body, res);
     });
     app.use(error_response_1.globalErrorHandler);
-    app.listen(port, () => {
+    const httpServer = app.listen(port, () => {
         console.log(`Server is running on PORT : ${port}`);
     });
+    (0, gateway_1.initialize)(httpServer);
 };
 exports.bootstrap = bootstrap;

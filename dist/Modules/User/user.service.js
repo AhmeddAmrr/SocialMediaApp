@@ -11,6 +11,7 @@ class UserService {
     _friendModel = new FriendRequest_repository_1.FriendRequestRepository(friendRequest_model_1.FriendRequestModel);
     constructor() { }
     getProfile = async (req, res) => {
+        await req.user?.populate("friends");
         return res.status(200).json({ message: "User Profile", user: req.user, decoded: req.decoded });
     };
     logout = async (req, res) => {
